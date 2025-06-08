@@ -2,6 +2,15 @@
 
 A comprehensive web application to manage personal finances, track income and expenses, set budgets, and achieve financial goals.
 
+---
+
+**Developed by Samonwita Sarker**  
+**Department of CSE, CUET (Chittagong University of Engineering & Technology)**
+
+© 2025 All Rights Reserved. Unauthorized reproduction or redistribution is prohibited.
+
+---
+
 ## Features
 
 - Income Tracking
@@ -22,9 +31,9 @@ A comprehensive web application to manage personal finances, track income and ex
 
 ## Setup
 
-1.  Ensure you have XAMPP or a similar environment with Apache and MySQL.
-2.  Place the project files in your web server's document root (e.g., `htdocs`).
-3.  Create a MySQL database (e.g., `finance_tracker_db`).
-4.  Import the schema from `database/schema.sql` into your database.
-5.  Configure the database connection in `includes/db.php` if necessary.
-6.  Access the application through your web browser (e.g., `http://localhost/Finance Tracker/`).
+1. Ensure you have XAMPP or a similar environment with Apache and MySQL.
+2. Place the project files in your web server's document root (e.g., `htdocs`).
+3. Create a MySQL database (e.g., `finance_tracker_db`).
+4. Import the schema from `database/schema.sql` into your database.
+5. Configure the database connection in `includes/db.php` if necessary.
+6. Access the application through your web browser (e.g., `http://localhost/Finance Tracker/`).
