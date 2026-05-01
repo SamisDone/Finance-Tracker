@@ -6,8 +6,14 @@
  */
 
 // Check if already installed
-if (file_exists(__DIR__ . '/.env') && file_exists(__DIR__ . '/finance_tracker.db')) {
+if (file_exists(__DIR__ . '/.env')) {
     die('Application already set up. Delete this file for security.');
+}
+
+// Additional security: Check if this file is accessible via web
+if (!isset($_POST['db_type'])) {
+    // On first load, show warning
+    $warning = '⚠️ SECURITY WARNING: Delete this file after setup!';
 }
 
 $message = '';
@@ -45,7 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $message_type = 'success';
     
     // Delete this file for security
-    // unlink(__FILE__);
+    unlink(__FILE__);
+    exit; // Stop execution after deleting
 }
 ?>
 <!DOCTYPE html>
@@ -73,6 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container">
         <h1><i class="fa-solid fa-coins"></i> Finance Tracker Setup</h1>
         
+        <?php if (isset($warning)): ?>
+            <div class="alert alert-error"><?php echo $warning; ?></div>
+        <?php endif; ?>
         <?php if ($message): ?>
             <div class="alert alert-<?php echo $message_type; ?>"><?php echo $message; ?></div>
         <?php endif; ?>

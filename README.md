@@ -30,8 +30,9 @@ A lightweight, secure personal finance management application built with PHP. Tr
    http://localhost/Finance-Tracker/setup.php
    ```
 3. Choose SQLite (no database server needed) or MySQL
-4. Delete `setup.php` after installation for security
-5. Start using the app at `http://localhost/Finance-Tracker/`
+4. **🔒 SECURITY:** The `setup.php` file will **auto-delete** after setup
+5. If it doesn't delete automatically, **manually delete** `setup.php` immediately
+6. Start using the app at `http://localhost/Finance-Tracker/`
 
 ### Option 2: Manual Setup
 
