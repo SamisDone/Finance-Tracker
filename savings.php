@@ -45,6 +45,20 @@ if (isset($_GET['edit_goal_id']) && !empty($_GET['edit_goal_id'])) {
     }
 }
 
+// Handle delete savings account
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_savings'])) {
+    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Invalid request.';
+        $message_type = 'error';
+    } else {
+        $del_id = intval($_POST['delete_savings']);
+        $stmt = $pdo->prepare("DELETE FROM savings_accounts WHERE id = :id AND user_id = :user_id");
+        $stmt->execute([':id' => $del_id, ':user_id' => $user_id]);
+        $message = 'Savings account deleted.';
+        $message_type = 'success';
+    }
+}
+
 // Handle add savings account
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_savings'])) {
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -195,6 +209,13 @@ $goals = $stmt->fetchAll();
                 <td><?php echo htmlspecialchars($s['account_name']); ?></td>
                 <td>$<?php echo number_format($s['current_balance'], 2); ?></td>
                 <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($s['created_at']))); ?></td>
+                <td>
+                    <form method="POST" action="" style="display:inline;" onsubmit="return confirm('Delete this savings account?');">
+                        <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+                        <input type="hidden" name="delete_savings" value="<?php echo $s['id']; ?>">
+                        <button type="submit" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash"></i> Delete</button>
+                    </form>
+                </td>
             </tr>
             <?php endforeach; ?>
         </tbody>

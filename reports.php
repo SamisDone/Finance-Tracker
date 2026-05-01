@@ -51,30 +51,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     fclose($out);
     exit;
 }
-?>
-<section class="hero section-hero reports-hero">
-    <div class="hero-bg-anim" aria-hidden="true">
-        <svg width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="reportsHeroGradient" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#2563eb"/>
-                    <stop offset="100%" stop-color="#14b8a6"/>
-                </linearGradient>
-            </defs>
-            <path d="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z" fill="url(#reportsHeroGradient)">
-                <animate attributeName="d" dur="8s" repeatCount="indefinite" values="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z;M0,220 Q400,170 900,270 T1440,220 V400 H0 Z;M0,200 Q400,350 900,150 T1440,200 V400 H0 Z"/>
-            </path>
-        </svg>
-    </div>
-    <div class="hero-content">
-        <h2 class="hero-title">
-            <i class="fa-solid fa-chart-line"></i> Reports & Visualizations
-        </h2>
-        <p class="hero-desc">
-            Visualize your spending and trends with interactive charts.
-        </p>
-    </div>
-</section>
+<?php renderHeroSection('reportsHeroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-chart-line', 'Reports & Visualizations', 'Visualize your spending and trends with interactive charts.'); ?>
 <div class="form-container card mb-4">
     <h2><i class="fa-solid fa-chart-pie"></i> Reports & Visualizations</h2>
     <form method="GET" action="">

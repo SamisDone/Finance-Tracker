@@ -15,9 +15,13 @@ $stmt = $pdo->prepare("SELECT username, email FROM users WHERE id = :id");
 $stmt->execute([':id' => $user_id]);
 $user = $stmt->fetch();
 
-// Fetch notification preferences
-$notify_reminders = $_SESSION['notify_reminders'] ?? 1;
-$notify_budget_alerts = $_SESSION['notify_budget_alerts'] ?? 1;
+// Fetch notification preferences from database
+$stmt_prefs = $pdo->prepare("SELECT notification_preferences FROM users WHERE id = :id");
+$stmt_prefs->execute([':id' => $user_id]);
+$prefs_json = $stmt_prefs->fetchColumn();
+$prefs = json_decode($prefs_json ?: '{}', true);
+$notify_reminders = $prefs['reminders'] ?? 1;
+$notify_budget_alerts = $prefs['budget_alerts'] ?? 1;
 
 // Handle profile update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -53,10 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message_type = 'error';
         }
     } elseif (isset($_POST['update_notifications'])) {
-        $_SESSION['notify_reminders'] = isset($_POST['notify_reminders']) ? 1 : 0;
-        $_SESSION['notify_budget_alerts'] = isset($_POST['notify_budget_alerts']) ? 1 : 0;
-        $notify_reminders = $_SESSION['notify_reminders'];
-        $notify_budget_alerts = $_SESSION['notify_budget_alerts'];
+        $prefs = [
+            'reminders' => isset($_POST['notify_reminders']) ? 1 : 0,
+            'budget_alerts' => isset($_POST['notify_budget_alerts']) ? 1 : 0
+        ];
+        $stmt = $pdo->prepare("UPDATE users SET notification_preferences = :prefs WHERE id = :id");
+        $stmt->execute([':prefs' => json_encode($prefs), ':id' => $user_id]);
+        $notify_reminders = $prefs['reminders'];
+        $notify_budget_alerts = $prefs['budget_alerts'];
         $message = 'Notification preferences updated!';
         $message_type = 'success';
     }

@@ -45,4 +45,30 @@ try {
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
+
+// Add notification_preferences column to users table if not exists (SQLite compatible)
+try {
+    $db_type = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($db_type === 'sqlite') {
+        $check = $pdo->query("PRAGMA table_info(users)");
+        $columns = $check->fetchAll(PDO::FETCH_ASSOC);
+        $has_prefs = false;
+        foreach ($columns as $col) {
+            if ($col['name'] === 'notification_preferences') {
+                $has_prefs = true;
+                break;
+            }
+        }
+        if (!$has_prefs) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN notification_preferences TEXT DEFAULT '{}'");
+        }
+    } else {
+        $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'notification_preferences'");
+        if ($check->rowCount() == 0) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN notification_preferences TEXT DEFAULT '{}'");
+        }
+    }
+} catch (Exception $e) {
+    // Ignore if table doesn't exist yet
+}
 ?>
