@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : 'Finance Tracker'; ?></title>
+    <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : 'FinPulse'; ?></title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" referrerpolicy="no-referrer" />
     <!-- You might want to add a favicon link here -->
@@ -12,7 +12,7 @@
 <body>
     <header class="main-header" style="animation:fadeIn 0.7s;">
         <nav class="navbar sticky-navbar">
-            <a href="dashboard.php" class="navbar-brand"><i class="fa-solid fa-coins"></i> Finance Tracker</a>
+            <a href="dashboard.php" class="navbar-brand"><i class="fa-solid fa-bolt"></i> FinPulse</a>
             <input type="checkbox" id="navbar-toggle" hidden>
             <label for="navbar-toggle" class="navbar-toggle-label"><span></span><span></span><span></span></label>
             <ul class="navbar-nav">

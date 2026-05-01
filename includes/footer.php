@@ -1,7 +1,7 @@
     </main>
     <footer>
         <div class="footer-copy">
-            &copy; <?php echo date('Y'); ?> Finance Tracker. All rights reserved.
+            &copy; <?php echo date('Y'); ?> FinPulse. All rights reserved.
         </div>
     </footer>
     <script src="assets/js/script.js"></script>

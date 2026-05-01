@@ -1,6 +1,6 @@
 <?php
 /**
- * Finance Tracker - Setup Script
+ * FinPulse - Setup Script
  * Run this script once to set up the application
  * Access via: http://localhost/Finance-Tracker/setup.php
  */
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $db_type = $_POST['db_type'] ?? 'sqlite';
     
     // Create .env file
-    $env_content = "# Environment Variables for Finance Tracker\n";
+    $env_content = "# Environment Variables for FinPulse\n";
     $env_content .= "DB_TYPE=" . $db_type . "\n";
     
     if ($db_type === 'mysql') {
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Finance Tracker - Setup Complete</title>
+        <title>FinPulse - Setup Complete</title>
         <style>
             body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
             .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <body>
         <div class="container">
             <h1>✅ Setup Complete!</h1>
-            <p>Your Finance Tracker has been configured successfully.</p>
+            <p>Your FinPulse app has been configured successfully.</p>
             <a href="index.php" class="btn">Go to Login / Register</a>
         </div>
     </body>
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Tracker - Setup</title>
+    <title>FinPulse - Setup</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="container">
-        <h1><i class="fa-solid fa-coins"></i> Finance Tracker Setup</h1>
+        <h1><i class="fa-solid fa-bolt"></i> FinPulse Setup</h1>
         
         <?php if (isset($warning)): ?>
             <div class="alert alert-error"><?php echo $warning; ?></div>
@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <div class="info">
-            <strong>Welcome!</strong> This setup will configure your Finance Tracker application.
+            <strong>Welcome!</strong> This setup will configure your FinPulse application.
             SQLite is recommended for easy deployment (no database server needed).
         </div>
         

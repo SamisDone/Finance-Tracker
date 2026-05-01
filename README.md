@@ -1,4 +1,4 @@
-# Finance Tracker
+# FinPulse
 
 A lightweight, secure personal finance management application built with PHP. Track income, expenses, budgets, and savings goals with ease.
 

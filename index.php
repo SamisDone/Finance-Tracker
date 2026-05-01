@@ -11,7 +11,7 @@ if ($view === 'login') {
 } elseif ($view === 'register') {
     $pageTitle = 'Register';
 } else {
-    $pageTitle = 'Welcome to Finance Tracker';
+    $pageTitle = 'Welcome to FinPulse';
 }
 
 // Handle form submissions
@@ -78,7 +78,7 @@ include 'includes/header.php';
 <?php endif; ?>
 
 <?php if ($view === 'main'): ?>
-<?php renderHeroSection('heroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-chart-line', 'Welcome to Your Personal Finance Tracker', 'Take control of your finances, track your spending, and achieve your financial goals with ease.'); ?>
+<?php renderHeroSection('heroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-bolt', 'Welcome to FinPulse', 'Take control of your finances, track your spending, and achieve your financial goals with ease.'); ?>
         <p class="hero-desc" style="display:none;">Take control of your finances, track your spending, and achieve your financial goals with ease.</p>
         <div class="hero-illustration mb-4">
             <!-- Beautiful SVG finance illustration -->
@@ -110,7 +110,7 @@ include 'includes/header.php';
 <!-- Key Features Section -->
 <section class="features-section text-center py-5">
     <div class="container">
-        <h2 class="section-title text-center mb-5">Why Choose Our Finance Tracker?</h2>
+        <h2 class="section-title text-center mb-5">Why Choose FinPulse?</h2>
         <div class="row">
             <div class="col-md-4 mb-4">
                 <div class="feature-item">

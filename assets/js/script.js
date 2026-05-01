@@ -1,5 +1,5 @@
 /**
- * Finance Tracker - Main JavaScript
+ * FinPulse - Main JavaScript
  * DRY: Reusable functions extracted from PHP files
  */
 

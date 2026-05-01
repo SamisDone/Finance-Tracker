@@ -1,4 +1,4 @@
--- SQLite-compatible schema for Finance Tracker
+-- SQLite-compatible schema for FinPulse
 -- Use this for portable deployment (no database server needed)
 
 -- Users table

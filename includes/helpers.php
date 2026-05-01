@@ -1,6 +1,6 @@
 <?php
 /**
- * Helper functions for Finance Tracker
+ * Helper functions for FinPulse
  * Follows DRY principle - common logic extracted here
  */
 
