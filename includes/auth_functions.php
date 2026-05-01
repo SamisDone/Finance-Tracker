@@ -1,10 +1,6 @@
 <?php
-// Ensure db.php is included (it should be if session_start is called there)
-if (session_status() == PHP_SESSION_NONE) {
-    // This might be redundant if db.php is always included before this file
-    // and db.php calls session_start().
-    session_start();
-}
+// db.php already handles session_start(), so this check is redundant
+// Keeping the file for authentication functions only
 
 /**
  * Generate CSRF token and store in session.

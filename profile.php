@@ -15,20 +15,18 @@ $stmt = $pdo->prepare("SELECT username, email FROM users WHERE id = :id");
 $stmt->execute([':id' => $user_id]);
 $user = $stmt->fetch();
 
-// Fetch notification preferences (for demo, store in session or expand users table for real use)
+// Fetch notification preferences
 $notify_reminders = $_SESSION['notify_reminders'] ?? 1;
 $notify_budget_alerts = $_SESSION['notify_budget_alerts'] ?? 1;
 
 // Handle profile update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validate CSRF token
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Invalid request. Please try again.';
         $message_type = 'error';
     } elseif (isset($_POST['update_profile'])) {
         $username = trim($_POST['username']);
         $email = trim($_POST['email']);
-        // Basic validation
         if ($username && $email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $stmt = $pdo->prepare("UPDATE users SET username = :username, email = :email WHERE id = :id");
             $stmt->execute([':username' => $username, ':email' => $email, ':id' => $user_id]);
@@ -63,7 +61,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message_type = 'success';
     }
 }
+?>
+
 <?php renderHeroSection('profileHeroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-user', 'Your Profile', 'Manage your account, password, and notification preferences.'); ?>
+
 <div class="form-container card mb-4">
     <h2><i class="fa-solid fa-user"></i> Your Profile</h2>
     <?php if ($message): ?><div class="flash-message <?php echo htmlspecialchars($message_type); ?>"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
@@ -85,11 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
         <div class="form-group">
             <label for="password">New Password:</label>
-            <input type="password" id="password" name="password" minlength="6" required>
+            <input type="password" id="password" name="password" minlength="8" required>
         </div>
         <div class="form-group">
             <label for="confirm_password">Confirm New Password:</label>
-            <input type="password" id="confirm_password" name="confirm_password" minlength="6" required>
+            <input type="password" id="confirm_password" name="confirm_password" minlength="8" required>
         </div>
         <button type="submit" name="update_password" class="btn">Update Password</button>
     </form>
@@ -106,4 +107,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit" name="update_notifications" class="btn">Update Notifications</button>
     </form>
 </div>
+
 <?php include 'includes/footer.php'; ?>

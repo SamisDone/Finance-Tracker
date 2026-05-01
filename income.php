@@ -20,6 +20,21 @@ $search = trim($_GET['search'] ?? '');
 // Handle form submission
 $message = '';
 $message_type = '';
+
+// Handle delete income
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_income'])) {
+    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Invalid request.';
+        $message_type = 'error';
+    } else {
+        $del_id = intval($_POST['delete_income']);
+        $stmt = $pdo->prepare("DELETE FROM income WHERE id = :id AND user_id = :user_id");
+        $stmt->execute([':id' => $del_id, ':user_id' => $user_id]);
+        $message = 'Income entry deleted.';
+        $message_type = 'success';
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Invalid request. Please try again.';
@@ -132,40 +147,7 @@ $income_entries = $stmt->fetchAll();
                 <button type="button" id="cancelNewCategory" class="btn btn-secondary btn-sm">Cancel</button>
             </div>
         </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            function setupAddNew(fieldId, selectId, btnId, saveBtnId, cancelBtnId, formId) {
-                const btn = document.getElementById(btnId);
-                const form = document.getElementById(formId);
-                const saveBtn = document.getElementById(saveBtnId);
-                const cancelBtn = document.getElementById(cancelBtnId);
-                const select = document.getElementById(selectId);
-                const input = document.getElementById(fieldId);
-
-                btn.onclick = () => { form.style.display = 'block'; btn.style.display = 'none'; };
-                cancelBtn.onclick = () => { form.style.display = 'none'; btn.style.display = ''; };
-                saveBtn.onclick = () => {
-                    const val = input.value.trim();
-                    if (val) {
-                        let exists = false;
-                        for (let i = 0; i < select.options.length; i++) {
-                            if (select.options[i].value === val) { exists = true; break; }
-                        }
-                        if (!exists) {
-                            const opt = document.createElement('option');
-                            opt.value = val; opt.textContent = val;
-                            select.appendChild(opt);
-                        }
-                        select.value = val;
-                        form.style.display = 'none';
-                        btn.style.display = '';
-                    }
-                };
-            }
-            setupAddNew('new_source_name', 'source', 'addSourceBtn', 'saveNewSource', 'cancelNewSource', 'newSourceForm');
-            setupAddNew('new_category_name', 'category', 'addCategoryBtn', 'saveNewCategory', 'cancelNewCategory', 'newCategoryForm');
-        });
-        </script>
+    <script src="assets/js/script.js"></script>
         <div class="form-group">
             <label><input type="checkbox" name="is_recurring" id="is_recurring" onchange="document.getElementById('recurrence_period').style.display = this.checked ? 'block' : 'none';"> Recurring Income?</label>
             <select name="recurrence_period" id="recurrence_period" style="display:none;">
@@ -212,6 +194,13 @@ $income_entries = $stmt->fetchAll();
                         <td><?php echo htmlspecialchars($entry['category_name'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($entry['description']); ?></td>
                         <td><?php echo $entry['is_recurring'] ? 'Yes (' . htmlspecialchars($entry['recurrence_period']) . ')' : 'No'; ?></td>
+                        <td>
+                            <form method="POST" action="" style="display:inline;" onsubmit="return confirm('Delete this income entry?');">
+                                <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+                                <input type="hidden" name="delete_income" value="<?php echo $entry['id']; ?>">
+                                <button type="submit" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash"></i> Delete</button>
+                            </form>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>

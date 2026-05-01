@@ -2,6 +2,7 @@
 require_once 'includes/db.php';
 require_once 'includes/auth_functions.php';
 require_once 'includes/hero_section.php';
+require_once 'includes/helpers.php';
 requireLogin();
 $pageTitle = 'Savings & Goals';
 include 'includes/header.php';
@@ -10,17 +11,15 @@ $user_id = $_SESSION['user_id'];
 $message = '';
 $message_type = '';
 
-$goal_to_edit = null; // Variable to hold goal data for editing
+$goal_to_edit = null;
 
 // Handle Delete Financial Goal (POST with CSRF protection)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_goal_id']) && !empty($_POST['delete_goal_id'])) {
-    // Validate CSRF token
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Invalid request. Please try again.';
         $message_type = 'error';
     } else {
         $goal_id_to_delete = $_POST['delete_goal_id'];
-        // Ensure the goal belongs to the current user before deleting
         $stmt_delete = $pdo->prepare("DELETE FROM financial_goals WHERE id = :id AND user_id = :user_id");
         $stmt_delete->execute([':id' => $goal_id_to_delete, ':user_id' => $user_id]);
         if ($stmt_delete->rowCount() > 0) {
@@ -42,13 +41,12 @@ if (isset($_GET['edit_goal_id']) && !empty($_GET['edit_goal_id'])) {
     if (!$goal_to_edit) {
         $message = 'Goal not found or you do not have permission to edit it.';
         $message_type = 'error';
-        $goal_to_edit = null; // Clear if not found
+        $goal_to_edit = null;
     }
 }
 
 // Handle add savings account
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_savings'])) {
-    // Validate CSRF token
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Invalid request. Please try again.';
         $message_type = 'error';
@@ -68,54 +66,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_savings'])) {
 
 // Handle Add or Update Financial Goal
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['add_goal']) || isset($_POST['update_goal']))) {
-    // Validate CSRF token
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Invalid request. Please try again.';
         $message_type = 'error';
     } else {
-    $goal_name = trim($_POST['goal_name']);
-    $target_amount = floatval($_POST['target_amount']);
-    $current_amount = floatval($_POST['current_amount']);
-    $target_date = !empty($_POST['target_date']) ? $_POST['target_date'] : null;
-    $description = trim($_POST['description']);
-    
-    if (isset($_POST['update_goal']) && !empty($_POST['goal_id'])) {
-        // Update existing goal
-        $goal_id = $_POST['goal_id'];
-        $stmt_update = $pdo->prepare("UPDATE financial_goals SET goal_name = :goal_name, target_amount = :target_amount, current_amount = :current_amount, target_date = :target_date, description = :description WHERE id = :id AND user_id = :user_id");
-        $stmt_update->execute([
-            ':goal_name' => $goal_name,
-            ':target_amount' => $target_amount,
-            ':current_amount' => $current_amount,
-            ':target_date' => $target_date,
-            ':description' => $description,
-            ':id' => $goal_id,
-            ':user_id' => $user_id
-        ]);
-        if ($stmt_update->rowCount() > 0) {
-            $message = 'Goal updated successfully!';
+        $goal_name = trim($_POST['goal_name']);
+        $target_amount = floatval($_POST['target_amount']);
+        $current_amount = floatval($_POST['current_amount']);
+        $target_date = !empty($_POST['target_date']) ? $_POST['target_date'] : null;
+        $description = trim($_POST['description']);
+        
+        if (isset($_POST['update_goal']) && !empty($_POST['goal_id'])) {
+            $goal_id = $_POST['goal_id'];
+            $stmt_update = $pdo->prepare("UPDATE financial_goals SET goal_name = :goal_name, target_amount = :target_amount, current_amount = :current_amount, target_date = :target_date, description = :description WHERE id = :id AND user_id = :user_id");
+            $stmt_update->execute([
+                ':goal_name' => $goal_name,
+                ':target_amount' => $target_amount,
+                ':current_amount' => $current_amount,
+                ':target_date' => $target_date,
+                ':description' => $description,
+                ':id' => $goal_id,
+                ':user_id' => $user_id
+            ]);
+            if ($stmt_update->rowCount() > 0) {
+                $message = 'Goal updated successfully!';
+                $message_type = 'success';
+            } else {
+                $message = 'No changes detected or error updating goal.'; 
+                $message_type = 'warning'; 
+            }
+            $goal_to_edit = null;
+        } else if (isset($_POST['add_goal'])) {
+            $stmt_insert = $pdo->prepare("INSERT INTO financial_goals (user_id, goal_name, target_amount, current_amount, target_date, description) VALUES (:user_id, :goal_name, :target_amount, :current_amount, :target_date, :description)");
+            $stmt_insert->execute([
+                ':user_id' => $user_id,
+                ':goal_name' => $goal_name,
+                ':target_amount' => $target_amount,
+                ':current_amount' => $current_amount,
+                ':target_date' => $target_date,
+                ':description' => $description
+            ]);
+            $message = 'Goal added!';
             $message_type = 'success';
-        } else {
-            // Could be an error, or no actual change was made to the data
-            $message = 'No changes detected or error updating goal.'; 
-            $message_type = 'warning'; 
         }
-        $goal_to_edit = null; // Reset after update attempt
-
-    } else if (isset($_POST['add_goal'])) {
-        // Add new goal
-        $stmt_insert = $pdo->prepare("INSERT INTO financial_goals (user_id, goal_name, target_amount, current_amount, target_date, description) VALUES (:user_id, :goal_name, :target_amount, :current_amount, :target_date, :description)");
-        $stmt_insert->execute([
-            ':user_id' => $user_id,
-            ':goal_name' => $goal_name,
-            ':target_amount' => $target_amount,
-            ':current_amount' => $current_amount,
-            ':target_date' => $target_date,
-            ':description' => $description
-        ]);
-        $message = 'Goal added!';
-        $message_type = 'success';
-    }
     }
 }
 
@@ -123,11 +116,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['add_goal']) || isset
 $stmt = $pdo->prepare("SELECT * FROM savings_accounts WHERE user_id = :user_id ORDER BY created_at DESC");
 $stmt->execute([':user_id' => $user_id]);
 $savings = $stmt->fetchAll();
+
 // Fetch goals
 $stmt = $pdo->prepare("SELECT * FROM financial_goals WHERE user_id = :user_id ORDER BY created_at DESC");
 $stmt->execute([':user_id' => $user_id]);
 $goals = $stmt->fetchAll();
+?>
+
 <?php renderHeroSection('savingsHeroGradient', '#22c55e', '#2563eb', 'fa-solid fa-piggy-bank', 'Savings & Goals', 'Track your savings accounts and financial goals visually.'); ?>
+
 <div class="form-container card mb-4">
     <h2><i class="fa-solid fa-plus"></i> Add Savings Account</h2>
     <?php if ($message): ?><div class="flash-message <?php echo htmlspecialchars($message_type); ?>"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
@@ -144,27 +141,7 @@ $goals = $stmt->fetchAll();
         <button type="submit" name="add_savings" class="btn btn-full-width">Add Savings Account</button>
     </form>
 </div>
-<div class="card data-display-card mb-4">
-    <h2 class="card-header">Your Savings Accounts</h2>
-    <div class="card-content">
-    <?php if (count($savings) > 0): ?>
-    <table>
-        <thead>
-            <tr><th>Account Name</th><th>Current Balance</th><th>Created</th></tr>
-        </thead>
-        <tbody>
-            <?php foreach ($savings as $s): ?>
-            <tr>
-                <td><?php echo htmlspecialchars($s['account_name']); ?></td>
-                <td>$<?php echo number_format($s['current_balance'], 2); ?></td>
-                <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($s['created_at']))); ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-    <?php else: ?><p>No savings accounts found.</p><?php endif; ?>
-    </div>
-</div>
+
 <div class="form-container card mb-4">
     <h2>
         <i class="fa-solid fa-bullseye"></i> 
@@ -173,7 +150,7 @@ $goals = $stmt->fetchAll();
     <form method="POST" action="savings.php<?php echo $goal_to_edit ? '?edit_goal_id=' . htmlspecialchars($goal_to_edit['id']) : ''; ?>">
         <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
         <?php if ($goal_to_edit): ?>
-            <input type="hidden" name="goal_id" value="<?php echo htmlspecialchars($goal_to_edit['id']); ?>">
+            <input type="hidden" name="goal_id" value="<?php echo $goal_to_edit['id']; ?>">
         <?php endif; ?>
         <div class="form-group">
             <label for="goal_name">Goal Name:</label>
@@ -203,6 +180,29 @@ $goals = $stmt->fetchAll();
         <?php endif; ?>
     </form>
 </div>
+
+<div class="card data-display-card mb-4">
+    <h2 class="card-header">Your Savings Accounts</h2>
+    <div class="card-content">
+    <?php if (count($savings) > 0): ?>
+    <table>
+        <thead>
+            <tr><th>Account Name</th><th>Current Balance</th><th>Created</th></tr>
+        </thead>
+        <tbody>
+            <?php foreach ($savings as $s): ?>
+            <tr>
+                <td><?php echo htmlspecialchars($s['account_name']); ?></td>
+                <td>$<?php echo number_format($s['current_balance'], 2); ?></td>
+                <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($s['created_at']))); ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php else: ?><p>No savings accounts found.</p><?php endif; ?>
+    </div>
+</div>
+
 <div class="card data-display-card mb-4">
     <h2 class="card-header">Your Financial Goals</h2>
     <div class="card-content">
@@ -224,15 +224,15 @@ $goals = $stmt->fetchAll();
             <?php foreach ($goals as $g): ?>
             <?php 
                   $progress = 0;
-                  if ($g['target_amount'] > 0) { // Avoid division by zero if target is 0
+                  if ($g['target_amount'] > 0) {
                       $progress = min(100, round(($g['current_amount'] / $g['target_amount']) * 100));
                   } elseif ($g['current_amount'] > 0 && $g['target_amount'] == 0) {
-                      $progress = 100; // If target is 0 but saved something, consider it 100% (or handle as per logic)
+                      $progress = 100;
                   }
                   
                   $status_class = 'status-not-started';
                   $status_text = 'Not Started';
-                  if ($progress >= 100) { // Use >= 100 in case current_amount exceeds target_amount
+                  if ($progress >= 100) {
                       $status_class = 'status-achieved';
                       $status_text = 'Achieved!';
                   } elseif ($progress > 0) {
@@ -272,4 +272,6 @@ $goals = $stmt->fetchAll();
     <p>No financial goals found.</p>
     <?php endif; ?>
     </div>
+</div>
+
 <?php include 'includes/footer.php'; ?>

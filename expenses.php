@@ -59,6 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_expense'])) {
                 $target_path = $uploads_dir . '/' . $safe_filename;
                 if (move_uploaded_file($file['tmp_name'], $target_path)) {
                     $receipt_path = $target_path;
+                } else {
+                    $message = 'Failed to save receipt file. Check directory permissions.';
+                    $message_type = 'error';
                 }
             }
         }
@@ -186,40 +189,7 @@ $expenses = $stmt->fetchAll();
                 <button type="button" id="cancelNewMethod" class="btn btn-secondary btn-sm">Cancel</button>
             </div>
         </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            function setupAddNew(fieldId, selectId, btnId, saveBtnId, cancelBtnId, formId) {
-                const btn = document.getElementById(btnId);
-                const form = document.getElementById(formId);
-                const saveBtn = document.getElementById(saveBtnId);
-                const cancelBtn = document.getElementById(cancelBtnId);
-                const select = document.getElementById(selectId);
-                const input = document.getElementById(fieldId);
-
-                btn.onclick = () => { form.style.display = 'block'; btn.style.display = 'none'; };
-                cancelBtn.onclick = () => { form.style.display = 'none'; btn.style.display = ''; };
-                saveBtn.onclick = () => {
-                    const val = input.value.trim();
-                    if (val) {
-                        let exists = false;
-                        for (let i = 0; i < select.options.length; i++) {
-                            if (select.options[i].value === val) { exists = true; break; }
-                        }
-                        if (!exists) {
-                            const opt = document.createElement('option');
-                            opt.value = val; opt.textContent = val;
-                            select.appendChild(opt);
-                        }
-                        select.value = val;
-                        form.style.display = 'none';
-                        btn.style.display = '';
-                    }
-                };
-            }
-            setupAddNew('new_category_name', 'category', 'addCategoryBtn', 'saveNewCategory', 'cancelNewCategory', 'newCategoryForm');
-            setupAddNew('new_method_name', 'payment_method', 'addMethodBtn', 'saveNewMethod', 'cancelNewMethod', 'newMethodForm');
-        });
-        </script>
+    <script src="assets/js/script.js"></script>
         <div class="form-group">
             <label><input type="checkbox" name="is_recurring" id="is_recurring" onchange="document.getElementById('recurrence_period').style.display = this.checked ? 'block' : 'none';"> Recurring Expense?</label>
             <select name="recurrence_period" id="recurrence_period" style="display:none;">
