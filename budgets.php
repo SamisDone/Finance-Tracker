@@ -1,6 +1,8 @@
 <?php
 require_once 'includes/db.php';
 require_once 'includes/auth_functions.php';
+require_once 'includes/hero_section.php';
+require_once 'includes/helpers.php';
 requireLogin();
 $pageTitle = 'Budgets';
 include 'includes/header.php';
@@ -20,8 +22,42 @@ $user_id = $_SESSION['user_id'];
 $message = '';
 $message_type = '';
 
-// Handle add budget
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_budget'])) {
+// Handle edit budget - fetch existing data
+$budget_to_edit = null;
+if (isset($_GET['edit_id']) && is_numeric($_GET['edit_id'])) {
+    $edit_id = intval($_GET['edit_id']);
+    $stmt_edit = $pdo->prepare("SELECT * FROM budgets WHERE id = :id AND user_id = :user_id");
+    $stmt_edit->execute([':id' => $edit_id, ':user_id' => $user_id]);
+    $budget_to_edit = $stmt_edit->fetch();
+
+    if ($budget_to_edit) {
+        // Fetch category limits for this budget
+        $stmt_cats = $pdo->prepare("SELECT * FROM budget_categories WHERE budget_id = :budget_id");
+        $stmt_cats->execute([':budget_id' => $edit_id]);
+        $budget_to_edit['category_limits'] = $stmt_cats->fetchAll();
+    }
+}
+
+// Handle delete budget
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_budget'])) {
+    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Invalid request.';
+        $message_type = 'error';
+    } else {
+        $del_id = intval($_POST['delete_budget']);
+        $stmt_del = $pdo->prepare("DELETE FROM budgets WHERE id = :id AND user_id = :user_id");
+        $stmt_del->execute([':id' => $del_id, ':user_id' => $user_id]);
+        $message = 'Budget deleted.';
+        $message_type = 'success';
+    }
+}
+
+// Handle add/update budget
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['add_budget']) || isset($_POST['update_budget']))) {
+    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Invalid request.';
+        $message_type = 'error';
+    } else {
     $name = trim($_POST['name']);
     $period_type = $_POST['period_type'];
     $start_date = $_POST['start_date'];
@@ -29,28 +65,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_budget'])) {
     $total_limit = floatval($_POST['total_limit']);
     $category_limits = $_POST['category_limits'] ?? [];
 
-    // Insert budget
-    $stmt = $pdo->prepare("INSERT INTO budgets (user_id, name, period_type, start_date, end_date, total_limit) VALUES (:user_id, :name, :period_type, :start_date, :end_date, :total_limit)");
-    $stmt->execute([
-        ':user_id' => $user_id,
-        ':name' => $name,
-        ':period_type' => $period_type,
-        ':start_date' => $start_date,
-        ':end_date' => $end_date,
-        ':total_limit' => $total_limit
-    ]);
-    $budget_id = $pdo->lastInsertId();
+    if (isset($_POST['update_budget']) && !empty($_POST['budget_id'])) {
+        // Update existing budget
+        $budget_id = $_POST['budget_id'];
+        $stmt_upd = $pdo->prepare("UPDATE budgets SET name = :name, period_type = :period_type, start_date = :start_date, end_date = :end_date, total_limit = :total_limit WHERE id = :id AND user_id = :user_id");
+        $stmt_upd->execute([
+            ':name' => $name,
+            ':period_type' => $period_type,
+            ':start_date' => $start_date,
+            ':end_date' => $end_date,
+            ':total_limit' => $total_limit,
+            ':id' => $budget_id,
+            ':user_id' => $user_id
+        ]);
 
-    // Insert category limits
-    foreach ($category_limits as $cat_id => $limit) {
-        if (is_numeric($cat_id) && $limit !== '') {
-            $stmt = $pdo->prepare("INSERT INTO budget_categories (budget_id, expense_category_id, limit_amount) VALUES (:budget_id, :cat_id, :limit)");
-            $stmt->execute([
-                ':budget_id' => $budget_id,
-                ':cat_id' => $cat_id,
-                ':limit' => floatval($limit)
-            ]);
+        // Delete old category limits and insert new ones
+        $stmt_del = $pdo->prepare("DELETE FROM budget_categories WHERE budget_id = :budget_id");
+        $stmt_del->execute([':budget_id' => $budget_id]);
+
+        foreach ($category_limits as $cat_id => $limit) {
+            if (is_numeric($cat_id) && $limit !== '') {
+                $stmt_ins = $pdo->prepare("INSERT INTO budget_categories (budget_id, expense_category_id, limit_amount) VALUES (:budget_id, :cat_id, :limit)");
+                $stmt_ins->execute([
+                    ':budget_id' => $budget_id,
+                    ':cat_id' => $cat_id,
+                    ':limit' => floatval($limit)
+                ]);
+            }
         }
+        $message = 'Budget updated!';
+        $message_type = 'success';
+    } else {
+        // Insert new budget
+        $stmt = $pdo->prepare("INSERT INTO budgets (user_id, name, period_type, start_date, end_date, total_limit) VALUES (:user_id, :name, :period_type, :start_date, :end_date, :total_limit)");
+        $stmt->execute([
+            ':user_id' => $user_id,
+            ':name' => $name,
+            ':period_type' => $period_type,
+            ':start_date' => $start_date,
+            ':end_date' => $end_date,
+            ':total_limit' => $total_limit
+        ]);
+        $budget_id = $pdo->lastInsertId();
+
+        // Insert category limits
+        foreach ($category_limits as $cat_id => $limit) {
+            if (is_numeric($cat_id) && $limit !== '') {
+                $stmt = $pdo->prepare("INSERT INTO budget_categories (budget_id, expense_category_id, limit_amount) VALUES (:budget_id, :cat_id, :limit)");
+                $stmt->execute([
+                    ':budget_id' => $budget_id,
+                    ':cat_id' => $cat_id,
+                    ':limit' => floatval($limit)
+                ]);
+            }
+        }
+        $message = 'Budget created!';
+        $message_type = 'success';
+    }
+    }
+}
     }
     $message = 'Budget created!';
     $message_type = 'success';
@@ -76,12 +149,13 @@ $bud_stmt = $pdo->prepare("SELECT * FROM budgets WHERE user_id = :user_id ORDER 
 $bud_stmt->execute([':user_id' => $user_id]);
 $budgets = $bud_stmt->fetchAll();
 
-// Fetch budget categories
+// Fetch budget categories safely
 $budget_cats = [];
 if ($budgets) {
     $budget_ids = array_column($budgets, 'id');
-    $in = str_repeat('?,', count($budget_ids) - 1) . '?';
-    $stmt = $pdo->prepare("SELECT * FROM budget_categories WHERE budget_id IN ($in)");
+    // Create placeholders for prepared statement
+    $placeholders = implode(',', array_fill(0, count($budget_ids), '?'));
+    $stmt = $pdo->prepare("SELECT * FROM budget_categories WHERE budget_id IN ($placeholders)");
     $stmt->execute($budget_ids);
     foreach ($stmt->fetchAll() as $row) {
         $budget_cats[$row['budget_id']][] = $row;
@@ -104,30 +178,7 @@ foreach ($budgets as $b) {
     }
     $actuals[$b['id']] = ['total' => $total, 'categories' => $cat_totals];
 }
-?>
-<section class="hero section-hero budgets-hero">
-    <div class="hero-bg-anim" aria-hidden="true">
-        <svg width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="budgetHeroGradient" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#2563eb"/>
-                    <stop offset="100%" stop-color="#f59e42"/>
-                </linearGradient>
-            </defs>
-            <path d="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z" fill="url(#budgetHeroGradient)">
-                <animate attributeName="d" dur="8s" repeatCount="indefinite" values="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z;M0,220 Q400,170 900,270 T1440,220 V400 H0 Z;M0,200 Q400,350 900,150 T1440,200 V400 H0 Z"/>
-            </path>
-        </svg>
-    </div>
-    <div class="hero-content">
-        <h2 class="hero-title">
-            <i class="fa-solid fa-chart-pie"></i> Budgets
-        </h2>
-        <p class="hero-desc">
-            Set monthly or category-wise limits and track your spending visually.
-        </p>
-    </div>
-</section>
+<?php renderHeroSection('budgetHeroGradient', '#2563eb', '#f59e42', 'fa-solid fa-chart-pie', 'Budgets', 'Set monthly or category-wise limits and track your spending visually.'); ?>
 <div class="form-container card mb-4">
     <h2>
     <?php if (isset($_GET['edit_id'])): ?>
@@ -138,36 +189,50 @@ foreach ($budgets as $b) {
 </h2>
     <?php if ($message): ?><div class="flash-message <?php echo htmlspecialchars($message_type); ?>"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
     <form method="POST" action="">
+        <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+        <?php if ($budget_to_edit): ?>
+            <input type="hidden" name="budget_id" value="<?php echo $budget_to_edit['id']; ?>">
+        <?php endif; ?>
         <div class="form-group">
             <label for="name">Budget Name:</label>
-            <input type="text" id="name" name="name" required>
+            <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($budget_to_edit['name'] ?? ''); ?>" required>
         </div>
         <div class="form-group">
             <label for="period_type">Period:</label>
             <select name="period_type" id="period_type" required>
-                <option value="monthly">Monthly</option>
-                <option value="weekly">Weekly</option>
-                <option value="yearly">Yearly</option>
+                <option value="monthly" <?php echo (isset($budget_to_edit) && $budget_to_edit['period_type'] == 'monthly') ? 'selected' : ''; ?>>Monthly</option>
+                <option value="weekly" <?php echo (isset($budget_to_edit) && $budget_to_edit['period_type'] == 'weekly') ? 'selected' : ''; ?>>Weekly</option>
+                <option value="yearly" <?php echo (isset($budget_to_edit) && $budget_to_edit['period_type'] == 'yearly') ? 'selected' : ''; ?>>Yearly</option>
             </select>
         </div>
         <div class="form-group">
             <label for="start_date">Start Date:</label>
-            <input type="date" id="start_date" name="start_date" required>
+            <input type="date" id="start_date" name="start_date" value="<?php echo $budget_to_edit['start_date'] ?? ''; ?>" required>
         </div>
         <div class="form-group">
             <label for="end_date">End Date:</label>
-            <input type="date" id="end_date" name="end_date" required>
+            <input type="date" id="end_date" name="end_date" value="<?php echo $budget_to_edit['end_date'] ?? ''; ?>" required>
         </div>
         <div class="form-group">
             <label for="total_limit">Total Limit:</label>
-            <input type="number" step="0.01" min="0" id="total_limit" name="total_limit" required>
+            <input type="number" step="0.01" min="0" id="total_limit" name="total_limit" value="<?php echo $budget_to_edit['total_limit'] ?? ''; ?>" required>
         </div>
         <h4>Category-wise Limits (optional):</h4>
         <div id="budget-category-limits">
-        <?php foreach ($categories as $cat): ?>
+        <?php foreach ($categories as $cat): 
+            $current_limit = '';
+            if (isset($budget_to_edit['category_limits'])) {
+                foreach ($budget_to_edit['category_limits'] as $cl) {
+                    if ($cl['expense_category_id'] == $cat['id']) {
+                        $current_limit = $cl['limit_amount'];
+                        break;
+                    }
+                }
+            }
+        ?>
             <div class="form-group budget-cat-limit-row">
                 <label><?php echo htmlspecialchars($cat['name']); ?></label>
-                <input type="number" step="0.01" min="0" name="category_limits[<?php echo $cat['id']; ?>]" placeholder="Limit for <?php echo htmlspecialchars($cat['name']); ?>">
+                <input type="number" step="0.01" min="0" name="category_limits[<?php echo $cat['id']; ?>]" placeholder="Limit for <?php echo htmlspecialchars($cat['name']); ?>" value="<?php echo $current_limit; ?>">
             </div>
         <?php endforeach; ?>
         </div>
@@ -179,37 +244,12 @@ foreach ($budgets as $b) {
             <button type="button" id="saveNewBudgetCategory" class="btn btn-secondary" style="padding:2px 8px;">Save</button>
             <button type="button" id="cancelNewBudgetCategory" class="btn btn-secondary" style="padding:2px 8px;">Cancel</button>
         </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const addBtn = document.getElementById('addBudgetCategoryBtn');
-            const newForm = document.getElementById('newBudgetCategoryForm');
-            const saveBtn = document.getElementById('saveNewBudgetCategory');
-            const cancelBtn = document.getElementById('cancelNewBudgetCategory');
-            const container = document.getElementById('budget-category-limits');
-            addBtn.onclick = () => { newForm.style.display = 'block'; addBtn.style.display = 'none'; };
-            cancelBtn.onclick = () => { newForm.style.display = 'none'; addBtn.style.display = ''; };
-            saveBtn.onclick = () => {
-                const val = document.getElementById('new_budget_category_name').value.trim();
-                if (val) {
-                    // Check if already exists
-                    let exists = false;
-                    container.querySelectorAll('label').forEach(function(lbl) {
-                        if (lbl.textContent === val) exists = true;
-                    });
-                    if (!exists) {
-                        // Add new row
-                        const div = document.createElement('div');
-                        div.className = 'form-group budget-cat-limit-row';
-                        div.innerHTML = `<label>${val}</label><input type=\"number\" step=\"0.01\" min=\"0\" name=\"category_limits[new_${val.replace(/[^a-zA-Z0-9]/g,'_')}\"] placeholder=\"Limit for ${val}\">`;
-                        container.appendChild(div);
-                    }
-                    newForm.style.display = 'none';
-                    addBtn.style.display = '';
-                }
-            };
-        });
-        </script>
-        <button type="submit" name="add_budget" class="btn btn-full-width">Create Budget</button>
+        <button type="submit" name="<?php echo $budget_to_edit ? 'update_budget' : 'add_budget'; ?>" class="btn btn-full-width">
+            <?php echo $budget_to_edit ? 'Update Budget' : 'Create Budget'; ?>
+        </button>
+        <?php if ($budget_to_edit): ?>
+            <a href="budgets.php" class="btn btn-secondary btn-full-width mt-2">Cancel Edit</a>
+        <?php endif; ?>
     </form>
 </div>
 <div class="card data-display-card mt-4">
@@ -235,44 +275,53 @@ foreach ($budgets as $b) {
                 <th>Dates</th>
                 <th>Total Limit</th>
                 <th>Spent</th>
-                <th>Status</th>
-                <th>Category Limits</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($budgets as $b): ?>
-            <?php $over = $actuals[$b['id']]['total'] > $b['total_limit']; ?>
-            <tr>
-                <td><?php echo htmlspecialchars($b['name']); ?></td>
-                <td><?php echo htmlspecialchars(ucfirst($b['period_type'])); ?></td>
-                <td><?php echo htmlspecialchars($b['start_date']) . ' to ' . htmlspecialchars($b['end_date']); ?></td>
-                <td>$<?php echo number_format($b['total_limit'], 2); ?></td>
-                <td>$<?php echo number_format($actuals[$b['id']]['total'], 2); ?></td>
-                <td class="budget-status <?php echo $over ? 'status-overspent' : 'status-ok'; ?>"><?php echo $over ? 'Overspent!' : 'OK'; ?></td>
-                <td>
-                    <?php if (!empty($budget_cats[$b['id']])): ?>
-                        <ul>
-                            <?php foreach ($budget_cats[$b['id']] as $cat): ?>
-                                <?php $cat_over = isset($actuals[$b['id']]['categories'][$cat['expense_category_id']]) && $actuals[$b['id']]['categories'][$cat['expense_category_id']] > $cat['limit_amount']; ?>
-                                <li>
-                                    <?php
-                                    $cat_name = '';
-                                    foreach ($categories as $c) if ($c['id'] == $cat['expense_category_id']) $cat_name = $c['name'];
-                                    ?>
-                                    <?php echo htmlspecialchars($cat_name); ?>: $<?php echo number_format($cat['limit_amount'], 2); ?> (Spent: $<?php echo number_format($actuals[$b['id']]['categories'][$cat['expense_category_id']] ?? 0, 2); ?>)
-                                    <span class="budget-status <?php echo $cat_over ? 'status-overspent' : 'status-ok'; ?>">
-                                        <?php echo $cat_over ? 'Overspent!' : 'OK'; ?>
-                                    </span>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php else: ?>
-                        <em>None</em>
-                    <?php endif; ?>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
+                     <th>Status</th>
+                     <th>Category Limits</th>
+                     <th>Actions</th>
+                 </tr>
+             </thead>
+             <tbody>
+                 <?php foreach ($budgets as $b): ?>
+                 <?php $over = $actuals[$b['id']]['total'] > $b['total_limit']; ?>
+                 <tr>
+                     <td><?php echo htmlspecialchars($b['name']); ?></td>
+                     <td><?php echo htmlspecialchars(ucfirst($b['period_type'])); ?></td>
+                     <td><?php echo htmlspecialchars($b['start_date']) . ' to ' . htmlspecialchars($b['end_date']); ?></td>
+                     <td>$<?php echo number_format($b['total_limit'], 2); ?></td>
+                     <td>$<?php echo number_format($actuals[$b['id']]['total'], 2); ?></td>
+                     <td class="budget-status <?php echo $over ? 'status-overspent' : 'status-ok'; ?>"><?php echo $over ? 'Overspent!' : 'OK'; ?></td>
+                     <td>
+                         <?php if (!empty($budget_cats[$b['id']])): ?>
+                             <ul>
+                                 <?php foreach ($budget_cats[$b['id']] as $cat): ?>
+                                     <?php $cat_over = isset($actuals[$b['id']]['categories'][$cat['expense_category_id']]) && $actuals[$b['id']]['categories'][$cat['expense_category_id']] > $cat['limit_amount']; ?>
+                                     <li>
+                                         <?php
+                                         $cat_name = '';
+                                         foreach ($categories as $c) if ($c['id'] == $cat['expense_category_id']) $cat_name = $c['name'];
+                                         ?>
+                                         <?php echo htmlspecialchars($cat_name); ?>: $<?php echo number_format($cat['limit_amount'], 2); ?> (Spent: $<?php echo number_format($actuals[$b['id']]['categories'][$cat['expense_category_id']] ?? 0, 2); ?>)
+                                         <span class="budget-status <?php echo $cat_over ? 'status-overspent' : 'status-ok'; ?>">
+                                             <?php echo $cat_over ? 'Overspent!' : 'OK'; ?>
+                                         </span>
+                                     </li>
+                                 <?php endforeach; ?>
+                             </ul>
+                         <?php else: ?>
+                             <em>None</em>
+                         <?php endif; ?>
+                     </td>
+                     <td>
+                         <a href="?edit_id=<?php echo $b['id']; ?>" class="btn btn-sm btn-primary"><i class="fa-solid fa-edit"></i> Edit</a>
+                         <form method="POST" action="" style="display:inline;" onsubmit="return confirm('Delete this budget?');">
+                             <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+                             <input type="hidden" name="delete_budget" value="<?php echo $b['id']; ?>">
+                             <button type="submit" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash"></i> Delete</button>
+                         </form>
+                     </td>
+                 </tr>
+                 <?php endforeach; ?>
+             </tbody>
     </table>
     <?php else: ?>
     <p>No budgets found.</p>

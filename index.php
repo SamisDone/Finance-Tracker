@@ -10,7 +10,11 @@ $message = '';
 $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['register'])) {
+    // Validate CSRF token
+    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Invalid request. Please try again.';
+        $message_type = 'error';
+    } elseif (isset($_POST['register'])) {
         $username = trim($_POST['username']);
         $email = trim($_POST['email']);
         $password = $_POST['password'];
@@ -31,7 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'];
 
         $user = loginUser($pdo, $username_or_email, $password);
-        if ($user) {
+        if ($user === 'locked') {
+            $message = 'Too many login attempts. Please try again in 15 minutes.';
+            $message_type = 'error';
+        } elseif ($user) {
+            session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['flash_message'] = 'Login successful! Welcome back, ' . htmlspecialchars($user['username']) . '.';
@@ -61,27 +69,8 @@ include 'includes/header.php';
 <?php endif; ?>
 
 <?php if ($view === 'main'): ?>
-<section class="hero landing-page">
-    <div class="hero-bg-anim" aria-hidden="true">
-        <svg width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="heroGradient" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#2563eb"/>
-                    <stop offset="100%" stop-color="#14b8a6"/>
-                </linearGradient>
-            </defs>
-            <path d="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z" fill="url(#heroGradient)">
-                <animate attributeName="d" dur="8s" repeatCount="indefinite" values="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z;M0,220 Q400,170 900,270 T1440,220 V400 H0 Z;M0,200 Q400,350 900,150 T1440,200 V400 H0 Z"/>
-            </path>
-        </svg>
-    </div>
-    <div class="hero-content">
-        <h1 class="hero-title">
-            Welcome to <span>Your Personal Finance Tracker</span>
-        </h1>
-        <p class="hero-desc">
-            Take control of your finances, track your spending, and achieve your financial goals with ease.
-        </p>
+<?php renderHeroSection('heroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-chart-line', 'Welcome to Your Personal Finance Tracker', 'Take control of your finances, track your spending, and achieve your financial goals with ease.'); ?>
+        <p class="hero-desc" style="display:none;">Take control of your finances, track your spending, and achieve your financial goals with ease.</p>
         <div class="hero-illustration mb-4">
             <!-- Beautiful SVG finance illustration -->
             <svg width="340" height="180" viewBox="0 0 340 180" fill="none" xmlns="http://www.w3.org/2000/svg" class="svg-float">
@@ -192,38 +181,20 @@ include 'includes/header.php';
 
 <?php elseif ($view === 'login'): ?>
 <?php $pageTitle = 'Login'; ?>
-<section class="hero login-hero">
-    <div class="hero-bg-anim" aria-hidden="true">
-        <svg width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="loginHeroGradient" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#2563eb"/>
-                    <stop offset="100%" stop-color="#14b8a6"/>
-                </linearGradient>
-            </defs>
-            <path d="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z" fill="url(#loginHeroGradient)">
-                <animate attributeName="d" dur="8s" repeatCount="indefinite" values="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z;M0,220 Q400,170 900,270 T1440,220 V400 H0 Z;M0,200 Q400,350 900,150 T1440,200 V400 H0 Z"/>
-            </path>
-        </svg>
-    </div>
-    <div class="hero-content">
-        <h2 class="hero-title">
-            <i class="fa-solid fa-right-to-bracket"></i> Login
-        </h2>
-    </div>
-</section>
+<?php renderHeroSection('loginHeroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-right-to-bracket', 'Login'); ?>
 <div class="form-container card form-container-sm mb-4">
-    <form action="index.php?view=login" method="POST" autocomplete="on">
-        <div class="form-group">
-            <label for="username_or_email"><i class="fa-solid fa-user"></i> Username or Email:</label>
-            <input type="text" id="username_or_email" name="username_or_email" required autocomplete="username">
-        </div>
-        <div class="form-group">
-            <label for="password"><i class="fa-solid fa-lock"></i> Password:</label>
-            <input type="password" id="password" name="password" required autocomplete="current-password">
-        </div>
-        <button type="submit" name="login" class="btn btn-primary btn-full-width"><i class="fa-solid fa-arrow-right"></i> Login</button>
-    </form>
+         <form action="index.php?view=login" method="POST" autocomplete="on">
+         <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+         <div class="form-group">
+             <label for="username_or_email"><i class="fa-solid fa-user"></i> Username or Email:</label>
+             <input type="text" id="username_or_email" name="username_or_email" required autocomplete="username">
+         </div>
+         <div class="form-group">
+             <label for="password"><i class="fa-solid fa-lock"></i> Password:</label>
+             <input type="password" id="password" name="password" required autocomplete="current-password">
+         </div>
+         <button type="submit" name="login" class="btn btn-primary btn-full-width"><i class="fa-solid fa-arrow-right"></i> Login</button>
+     </form>
     <div class="auth-links">
         <p>Don't have an account? <a href="index.php?view=register">Register here</a></p>
     </div>
@@ -231,46 +202,29 @@ include 'includes/header.php';
 
 <?php elseif ($view === 'register'): ?>
 <?php $pageTitle = 'Register'; ?>
-<section class="hero register-hero">
-    <div class="hero-bg-anim" aria-hidden="true">
-        <svg width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="registerHeroGradient" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#2563eb"/>
-                    <stop offset="100%" stop-color="#f59e42"/>
-                </linearGradient>
-            </defs>
-            <path d="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z" fill="url(#registerHeroGradient)">
-                <animate attributeName="d" dur="8s" repeatCount="indefinite" values="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z;M0,220 Q400,170 900,270 T1440,220 V400 H0 Z;M0,200 Q400,350 900,150 T1440,200 V400 H0 Z"/>
-            </path>
-        </svg>
-    </div>
-    <div class="hero-content">
-        <h2 class="hero-title">
-            <i class="fa-solid fa-user-plus"></i> Register
-        </h2>
-    </div>
-</section>
+<?php renderHeroSection('registerHeroGradient', '#2563eb', '#f59e42', 'fa-solid fa-user-plus', 'Register'); ?>
 <div class="form-container card form-container-sm mb-4">
-    <form action="index.php?view=register" method="POST" autocomplete="on">
-        <div class="form-group">
-            <label for="username"><i class="fa-solid fa-user"></i> Username:</label>
-            <input type="text" id="username" name="username" required value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>" autocomplete="username">
-        </div>
-        <div class="form-group">
-            <label for="email"><i class="fa-solid fa-envelope"></i> Email:</label>
-            <input type="email" id="email" name="email" required value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" autocomplete="email">
-        </div>
-        <div class="form-group">
-            <label for="password"><i class="fa-solid fa-lock"></i> Password:</label>
-            <input type="password" id="password" name="password" required autocomplete="new-password">
-        </div>
-        <div class="form-group">
-            <label for="confirm_password"><i class="fa-solid fa-lock"></i> Confirm Password:</label>
-            <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password">
-        </div>
-        <button type="submit" name="register" class="btn btn-primary btn-full-width"><i class="fa-solid fa-user-plus"></i> Register</button>
-    </form>
+     <form action="index.php?view=register" method="POST" autocomplete="on">
+         <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+         <div class="form-group">
+             <label for="username"><i class="fa-solid fa-user"></i> Username:</label>
+             <input type="text" id="username" name="username" required value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>" autocomplete="username">
+         </div>
+         <div class="form-group">
+             <label for="email"><i class="fa-solid fa-envelope"></i> Email:</label>
+             <input type="email" id="email" name="email" required value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" autocomplete="email">
+         </div>
+         <div class="form-group">
+             <label for="password"><i class="fa-solid fa-lock"></i> Password:</label>
+             <input type="password" id="password" name="password" required autocomplete="new-password" pattern="(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}">
+             <small class="form-text">Minimum 8 characters, at least one uppercase letter, one number, and one special character</small>
+         </div>
+         <div class="form-group">
+             <label for="confirm_password"><i class="fa-solid fa-lock"></i> Confirm Password:</label>
+             <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password">
+         </div>
+         <button type="submit" name="register" class="btn btn-primary btn-full-width"><i class="fa-solid fa-user-plus"></i> Register</button>
+     </form>
     <div class="auth-links">
         <p>Already have an account? <a href="index.php?view=login">Login here</a></p>
     </div>

@@ -1,6 +1,7 @@
 <?php
 require_once 'includes/db.php';
 require_once 'includes/auth_functions.php';
+require_once 'includes/hero_section.php';
 requireLogin();
 $pageTitle = 'Profile';
 include 'includes/header.php';
@@ -20,7 +21,11 @@ $notify_budget_alerts = $_SESSION['notify_budget_alerts'] ?? 1;
 
 // Handle profile update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['update_profile'])) {
+    // Validate CSRF token
+    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Invalid request. Please try again.';
+        $message_type = 'error';
+    } elseif (isset($_POST['update_profile'])) {
         $username = trim($_POST['username']);
         $email = trim($_POST['email']);
         // Basic validation
@@ -39,14 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['update_password'])) {
         $password = $_POST['password'];
         $confirm = $_POST['confirm_password'];
-        if ($password && strlen($password) >= 6 && $password === $confirm) {
+        if ($password && strlen($password) >= 8 && $password === $confirm && preg_match('/[A-Z]/', $password) && preg_match('/[0-9]/', $password) && preg_match('/[^A-Za-z0-9]/', $password)) {
             $hash = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("UPDATE users SET password_hash = :hash WHERE id = :id");
             $stmt->execute([':hash' => $hash, ':id' => $user_id]);
             $message = 'Password updated!';
             $message_type = 'success';
         } else {
-            $message = 'Passwords must match and be at least 6 characters.';
+            $message = 'Password must be at least 8 characters and contain uppercase, number, and special character.';
             $message_type = 'error';
         }
     } elseif (isset($_POST['update_notifications'])) {
@@ -58,34 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message_type = 'success';
     }
 }
-?>
-<section class="hero section-hero profile-hero">
-    <div class="hero-bg-anim" aria-hidden="true">
-        <svg width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="profileHeroGradient" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#2563eb"/>
-                    <stop offset="100%" stop-color="#14b8a6"/>
-                </linearGradient>
-            </defs>
-            <path d="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z" fill="url(#profileHeroGradient)">
-                <animate attributeName="d" dur="8s" repeatCount="indefinite" values="M0,200 Q400,350 900,150 T1440,200 V400 H0 Z;M0,220 Q400,170 900,270 T1440,220 V400 H0 Z;M0,200 Q400,350 900,150 T1440,200 V400 H0 Z"/>
-            </path>
-        </svg>
-    </div>
-    <div class="hero-content">
-        <h2 class="hero-title">
-            <i class="fa-solid fa-user"></i> Your Profile
-        </h2>
-        <p class="hero-desc">
-            Manage your account, password, and notification preferences.
-        </p>
-    </div>
-</section>
+<?php renderHeroSection('profileHeroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-user', 'Your Profile', 'Manage your account, password, and notification preferences.'); ?>
 <div class="form-container card mb-4">
     <h2><i class="fa-solid fa-user"></i> Your Profile</h2>
     <?php if ($message): ?><div class="flash-message <?php echo htmlspecialchars($message_type); ?>"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
     <form method="POST" action="">
+        <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
         <div class="form-group">
             <label for="username"><i class="fa-solid fa-user"></i> Username:</label>
             <input type="text" id="username" name="username" required value="<?php echo htmlspecialchars($user['username']); ?>">
@@ -99,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <hr>
     <h3>Change Password</h3>
     <form method="POST" action="">
+        <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
         <div class="form-group">
             <label for="password">New Password:</label>
             <input type="password" id="password" name="password" minlength="6" required>
@@ -112,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <hr>
     <h3>Notification Preferences</h3>
     <form method="POST" action="">
+        <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
         <div class="form-group">
             <label><input type="checkbox" name="notify_reminders" <?php if ($notify_reminders) echo 'checked'; ?>> Bill Reminders</label>
         </div>

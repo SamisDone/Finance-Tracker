@@ -1,0 +1,39 @@
+# Environment variables
+.env
+
+# Database files (SQLite)
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded files
+uploads/
+receipts/
+
+# Setup file (delete after use)
+setup.php
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+error_log
+
+# PHP related
+php_error.log
+vendor/
+composer.lock
+
+# Node modules (if added later)
+node_modules/
+package-lock.json
