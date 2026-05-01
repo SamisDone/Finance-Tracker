@@ -1,6 +1,7 @@
 <?php
 require_once 'includes/db.php';
 require_once 'includes/auth_functions.php';
+require_once 'includes/hero_section.php';
 requireLogin();
 $pageTitle = 'Reports & Visualizations';
 $include_chartjs = true;
@@ -51,7 +52,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     fclose($out);
     exit;
 }
+?>
+
 <?php renderHeroSection('reportsHeroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-chart-line', 'Reports & Visualizations', 'Visualize your spending and trends with interactive charts.'); ?>
+
 <div class="form-container card mb-4">
     <h2><i class="fa-solid fa-chart-pie"></i> Reports & Visualizations</h2>
     <form method="GET" action="">
@@ -83,6 +87,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         </div>
     </div>
 </div>
+
 <script>
 // Pie chart data
 const pieLabels = <?php echo json_encode(array_keys($category_totals)); ?>;
@@ -104,7 +109,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     data: pieData,
                     backgroundColor: [
-                        '#3498db', '#e67e22', '#2ecc71', '#9b59b6', '#e74c3c', '#f1c40f', '#1abc9c', '#34495e', '#7f8c8d'
+                        '#3498db', '#e67e22', '#2ecc71', '#9b59b6', '#e74c3c', '#f1c40f', '#1abc9c', '#7f8c8d'
                     ]
                 }]
             },
@@ -141,4 +146,5 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
 <?php include 'includes/footer.php'; ?>
