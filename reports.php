@@ -14,7 +14,7 @@ $start_date = $_GET['start_date'] ?? date('Y-m-01');
 $end_date = $_GET['end_date'] ?? date('Y-m-d');
 
 // Fetch expenses for the period
-$stmt = $pdo->prepare("SELECT e.*, c.name as category_name FROM expenses e LEFT JOIN expense_categories c ON e.category_id = c.id WHERE e.user_id = :user_id AND e.expense_date BETWEEN :start AND :end");
+$stmt = $pdo->prepare("SELECT e.*, c.name as category_name, p.name as payment_method_name FROM expenses e LEFT JOIN expense_categories c ON e.category_id = c.id LEFT JOIN payment_methods p ON e.payment_method_id = p.id WHERE e.user_id = :user_id AND e.expense_date BETWEEN :start AND :end");
 $stmt->execute([':user_id' => $user_id, ':start' => $start_date, ':end' => $end_date]);
 $expenses = $stmt->fetchAll();
 
@@ -45,7 +45,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $exp['expense_date'],
             $exp['amount'],
             $exp['category_name'],
-            $exp['payment_method_id'],
+            $exp['payment_method_name'] ?? '',
             $exp['description']
         ]);
     }
@@ -85,8 +85,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             <h3>Line Chart: Expense Trend</h3>
             <canvas id="lineChart"></canvas>
         </div>
-    </div>
 </div>
+
+<?php include 'includes/footer.php'; ?>
 
 <script>
 // Pie chart data
@@ -99,52 +100,50 @@ const barData = <?php echo json_encode(array_values($month_totals)); ?>;
 const lineLabels = <?php echo json_encode(array_keys($trend)); ?>;
 const lineData = <?php echo json_encode(array_values($trend)); ?>;
 
-window.addEventListener('DOMContentLoaded', function() {
-    if (typeof Chart !== 'undefined') {
-        // Pie Chart
-        new Chart(document.getElementById('pieChart').getContext('2d'), {
-            type: 'pie',
-            data: {
-                labels: pieLabels,
-                datasets: [{
-                    data: pieData,
-                    backgroundColor: [
-                        '#3498db', '#e67e22', '#2ecc71', '#9b59b6', '#e74c3c', '#f1c40f', '#1abc9c', '#7f8c8d'
-                    ]
-                }]
-            },
-            options: {responsive: true}
-        });
-        // Bar Chart
-        new Chart(document.getElementById('barChart').getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: barLabels,
-                datasets: [{
-                    label: 'Expenses',
-                    data: barData,
-                    backgroundColor: '#3498db'
-                }]
-            },
-            options: {responsive: true}
-        });
-        // Line Chart
-        new Chart(document.getElementById('lineChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: lineLabels,
-                datasets: [{
-                    label: 'Expenses',
-                    data: lineData,
-                    borderColor: '#e67e22',
-                    backgroundColor: 'rgba(230,126,34,0.1)',
-                    fill: true
-                }]
-            },
-            options: {responsive: true}
-        });
-    }
-});
+// Charts init — Chart.js is loaded via footer.php before this script
+if (typeof Chart !== 'undefined') {
+    // Pie Chart
+    new Chart(document.getElementById('pieChart').getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: pieLabels,
+            datasets: [{
+                data: pieData,
+                backgroundColor: [
+                    '#3498db', '#e67e22', '#2ecc71', '#9b59b6', '#e74c3c', '#f1c40f', '#1abc9c', '#7f8c8d'
+                ]
+            }]
+        },
+        options: {responsive: true}
+    });
+    // Bar Chart
+    new Chart(document.getElementById('barChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: barLabels,
+            datasets: [{
+                label: 'Expenses',
+                data: barData,
+                backgroundColor: '#3498db'
+            }]
+        },
+        options: {responsive: true}
+    });
+    // Line Chart
+    new Chart(document.getElementById('lineChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: lineLabels,
+            datasets: [{
+                label: 'Expenses',
+                data: lineData,
+                borderColor: '#e67e22',
+                backgroundColor: 'rgba(230,126,34,0.1)',
+                fill: true
+            }]
+        },
+        options: {responsive: true}
+    });
+}
 </script>
 
-<?php include 'includes/footer.php'; ?>

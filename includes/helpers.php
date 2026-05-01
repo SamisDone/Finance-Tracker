@@ -83,8 +83,13 @@ function insertDefaultCategories(PDO $pdo, int $user_id): void {
 function getOrCreateId(PDO $pdo, int $user_id, string $table, string $name): ?int {
     if (empty($name)) return null;
 
-    // Try to insert (will ignore if exists due to UNIQUE constraint)
-    $stmt = $pdo->prepare("INSERT IGNORE INTO $table (user_id, name) VALUES (:user_id, :name)");
+    // Use database-appropriate INSERT syntax
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        $stmt = $pdo->prepare("INSERT OR IGNORE INTO $table (user_id, name) VALUES (:user_id, :name)");
+    } else {
+        $stmt = $pdo->prepare("INSERT IGNORE INTO $table (user_id, name) VALUES (:user_id, :name)");
+    }
     $stmt->execute([':user_id' => $user_id, ':name' => $name]);
 
     // Get the ID
@@ -96,7 +101,7 @@ function getOrCreateId(PDO $pdo, int $user_id, string $table, string $name): ?in
 /**
  * Build pagination HTML
  */
-function renderPagination(int $current_page, int $total_records, int $per_page, string $base_url = ''): string {
+function renderPagination(int $current_page, int $total_records, int $per_page): string {
     $total_pages = ceil($total_records / $per_page);
     if ($total_pages <= 1) return '';
 

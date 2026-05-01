@@ -45,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_expense'])) {
             $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
             $file_info = finfo_open(FILEINFO_MIME_TYPE);
             $mime_type = finfo_file($file_info, $file['tmp_name']);
-            finfo_close($file_info);
 
             if (!in_array($mime_type, $allowed_types)) {
                 $message = 'Invalid file type. Only JPG, PNG, GIF, and PDF are allowed.';
@@ -189,7 +188,6 @@ $expenses = $stmt->fetchAll();
                 <button type="button" id="cancelNewMethod" class="btn btn-secondary btn-sm">Cancel</button>
             </div>
         </div>
-    <script src="assets/js/script.js"></script>
         <div class="form-group">
             <label><input type="checkbox" name="is_recurring" id="is_recurring" onchange="document.getElementById('recurrence_period').style.display = this.checked ? 'block' : 'none';"> Recurring Expense?</label>
             <select name="recurrence_period" id="recurrence_period" style="display:none;">
@@ -214,12 +212,12 @@ $expenses = $stmt->fetchAll();
 <div class="card data-display-card mb-4">
     <h2 class="card-header">Your Expenses</h2>
     <div class="card-content">
+        <div class="table-controls-container mb-3">
+            <form method="GET" action="" class="search-filter-container">
+                <?php echo renderSearchForm($search); ?>
+            </form>
+        </div>
         <?php if (count($expenses) > 0): ?>
-            <div class="table-controls-container mb-3">
-                <form method="GET" action="" class="search-filter-container">
-                    <?php echo renderSearchForm($search); ?>
-                </form>
-            </div>
             <table>
                 <thead>
                     <tr>

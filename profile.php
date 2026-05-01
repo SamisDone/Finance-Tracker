@@ -32,13 +32,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = trim($_POST['username']);
         $email = trim($_POST['email']);
         if ($username && $email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $stmt = $pdo->prepare("UPDATE users SET username = :username, email = :email WHERE id = :id");
-            $stmt->execute([':username' => $username, ':email' => $email, ':id' => $user_id]);
-            $_SESSION['username'] = $username;
-            $message = 'Profile updated!';
-            $message_type = 'success';
-            $user['username'] = $username;
-            $user['email'] = $email;
+            // Check for duplicates (excluding current user)
+            $dup_check = $pdo->prepare("SELECT id FROM users WHERE (username = :username OR email = :email) AND id != :id LIMIT 1");
+            $dup_check->execute([':username' => $username, ':email' => $email, ':id' => $user_id]);
+            if ($dup_check->fetch()) {
+                $message = 'Username or email already taken by another user.';
+                $message_type = 'error';
+            } else {
+                $stmt = $pdo->prepare("UPDATE users SET username = :username, email = :email WHERE id = :id");
+                $stmt->execute([':username' => $username, ':email' => $email, ':id' => $user_id]);
+                $_SESSION['username'] = $username;
+                $message = 'Profile updated!';
+                $message_type = 'success';
+                $user['username'] = $username;
+                $user['email'] = $email;
+            }
         } else {
             $message = 'Invalid username or email.';
             $message_type = 'error';

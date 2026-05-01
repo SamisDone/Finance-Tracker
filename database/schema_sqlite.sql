@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS income_sources (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
+    description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, name)
@@ -135,6 +136,7 @@ CREATE TABLE IF NOT EXISTS financial_goals (
     target_amount DECIMAL(10,2) NOT NULL,
     current_amount DECIMAL(10,2) DEFAULT 0,
     target_date DATE,
+    description TEXT,
     status TEXT DEFAULT 'active',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -9,7 +9,7 @@ include 'includes/header.php';
 echo '<div class="container page-container mt-3">'; 
 echo '  <nav aria-label="breadcrumb" class="mb-4">';
 echo '    <ol class="breadcrumb">';
-echo '      <li class="breadcrumb-item"><a href="index.php?view=dashboard">Dashboard</a></li>';
+echo '      <li class="breadcrumb-item"><a href="dashboard.php">Dashboard</a></li>';
 echo '      <li class="breadcrumb-item"><a href="budgets.php">Budgets</a></li>';
 if (isset($_GET['edit_id'])) {
     echo '      <li class="breadcrumb-item active" aria-current="page">Edit Budget</li>';

@@ -33,13 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_income'])) {
         $message = 'Income entry deleted.';
         $message_type = 'success';
     }
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_income'])) {
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Invalid request. Please try again.';
         $message_type = 'error';
-    } elseif (isset($_POST['add_income'])) {
+    } else {
         $amount = floatval($_POST['amount']);
         $income_date = $_POST['income_date'];
         $description = trim($_POST['description']);
@@ -147,7 +145,6 @@ $income_entries = $stmt->fetchAll();
                 <button type="button" id="cancelNewCategory" class="btn btn-secondary btn-sm">Cancel</button>
             </div>
         </div>
-    <script src="assets/js/script.js"></script>
         <div class="form-group">
             <label><input type="checkbox" name="is_recurring" id="is_recurring" onchange="document.getElementById('recurrence_period').style.display = this.checked ? 'block' : 'none';"> Recurring Income?</label>
             <select name="recurrence_period" id="recurrence_period" style="display:none;">
@@ -168,12 +165,12 @@ $income_entries = $stmt->fetchAll();
 <div class="card data-display-card mb-4">
     <h2 class="card-header">Your Income Entries</h2>
     <div class="card-content">
+        <div class="table-controls-container mb-3">
+            <form method="GET" action="" class="search-filter-container">
+                <?php echo renderSearchForm($search); ?>
+            </form>
+        </div>
         <?php if (count($income_entries) > 0): ?>
-            <div class="table-controls-container mb-3">
-                <form method="GET" action="" class="search-filter-container">
-                    <?php echo renderSearchForm($search); ?>
-                </form>
-            </div>
             <table>
                 <thead>
                     <tr>

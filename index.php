@@ -1,9 +1,18 @@
 <?php 
 require_once 'includes/db.php';
-require_once 'includes/auth_functions.php'; // We'll create this file next for auth logic
+require_once 'includes/auth_functions.php';
+require_once 'includes/hero_section.php';
 
 $view = $_GET['view'] ?? 'main'; // Default view: main landing, or login/register
-$pageTitle = 'Welcome to Finance Tracker';
+
+// Set pageTitle per view BEFORE header is included
+if ($view === 'login') {
+    $pageTitle = 'Login';
+} elseif ($view === 'register') {
+    $pageTitle = 'Register';
+} else {
+    $pageTitle = 'Welcome to Finance Tracker';
+}
 
 // Handle form submissions
 $message = '';
@@ -180,7 +189,6 @@ include 'includes/header.php';
 </section>
 
 <?php elseif ($view === 'login'): ?>
-<?php $pageTitle = 'Login'; ?>
 <?php renderHeroSection('loginHeroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-right-to-bracket', 'Login'); ?>
 <div class="form-container card form-container-sm mb-4">
          <form action="index.php?view=login" method="POST" autocomplete="on">
@@ -201,7 +209,6 @@ include 'includes/header.php';
 </div>
 
 <?php elseif ($view === 'register'): ?>
-<?php $pageTitle = 'Register'; ?>
 <?php renderHeroSection('registerHeroGradient', '#2563eb', '#f59e42', 'fa-solid fa-user-plus', 'Register'); ?>
 <div class="form-container card form-container-sm mb-4">
      <form action="index.php?view=register" method="POST" autocomplete="on">

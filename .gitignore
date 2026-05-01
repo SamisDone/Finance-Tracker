@@ -10,9 +10,6 @@
 uploads/
 receipts/
 
-# Setup file (delete after use)
-setup.php
-
 # OS files
 Thumbs.db
 Desktop.ini

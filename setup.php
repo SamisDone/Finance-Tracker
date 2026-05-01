@@ -47,12 +47,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mkdir(__DIR__ . '/assets/images/avatars', 0755, true);
     }
     
-    $message = 'Setup completed successfully! You can now <a href="index.php">login or register</a>.';
-    $message_type = 'success';
-    
-    // Delete this file for security
-    unlink(__FILE__);
-    exit; // Stop execution after deleting
+    // Show success page, then delete this file
+    @unlink(__FILE__); // Delete setup file for security (suppress errors)
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Finance Tracker - Setup Complete</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+            .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+            h1 { color: #22c55e; }
+            .btn { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 4px; text-decoration: none; margin-top: 15px; }
+            .btn:hover { background: #1d4ed8; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>✅ Setup Complete!</h1>
+            <p>Your Finance Tracker has been configured successfully.</p>
+            <a href="index.php" class="btn">Go to Login / Register</a>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
 }
 ?>
 <!DOCTYPE html>
