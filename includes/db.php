@@ -1,4 +1,8 @@
 <?php
+// Enable error reporting during development
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Load .env file if it exists (manual parser — no external dependencies)
 $env_file = __DIR__ . '/../.env';
 if (file_exists($env_file)) {

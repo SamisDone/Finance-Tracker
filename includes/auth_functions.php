@@ -143,16 +143,17 @@ function loginUser(PDO $pdo, string $username_or_email, string $password, int $m
  */
 function isLoggedIn(): bool
 {
-    return isset($_SESSION['user_id']);
+    return isset($_SESSION['user_id'], $_SESSION['username']);
 }
 
 /**
  * Requires a user to be logged in. If not, redirects to the login page.
  * Optionally, can redirect to a specific page.
  */
-function requireLogin(string $redirect_to = 'index.php?view=login'): void
+function requireLogin(string $redirect_to = 'login.php'): void
 {
-    if (!isLoggedIn()) {
+    if (!isset($_SESSION['user_id'], $_SESSION['username'])) {
+        session_destroy();
         $_SESSION['flash_message'] = 'You need to login to access this page.';
         $_SESSION['flash_message_type'] = 'info';
         header("Location: " . $redirect_to);

@@ -105,21 +105,21 @@ function renderPagination(int $current_page, int $total_records, int $per_page):
     $total_pages = ceil($total_records / $per_page);
     if ($total_pages <= 1) return '';
 
-    $html = '<div class="pagination">';
+    $html = '<div class="pagination" style="padding: 16px;">';
     if ($current_page > 1) {
-        $html .= '<a href="?' . http_build_query(array_merge($_GET, ['page' => $current_page - 1])) . '" class="btn btn-sm">&laquo; Prev</a>';
+        $html .= '<a href="?' . http_build_query(array_merge($_GET, ['page' => $current_page - 1])) . '">&laquo; Prev</a>';
     }
 
     for ($i = 1; $i <= $total_pages; $i++) {
         if ($i == $current_page) {
-            $html .= '<span class="btn btn-sm btn-primary">' . $i . '</span>';
+            $html .= '<span class="current">' . $i . '</span>';
         } else {
-            $html .= '<a href="?' . http_build_query(array_merge($_GET, ['page' => $i])) . '" class="btn btn-sm">' . $i . '</a>';
+            $html .= '<a href="?' . http_build_query(array_merge($_GET, ['page' => $i])) . '">' . $i . '</a>';
         }
     }
 
     if ($current_page < $total_pages) {
-        $html .= '<a href="?' . http_build_query(array_merge($_GET, ['page' => $current_page + 1])) . '" class="btn btn-sm">Next &raquo;</a>';
+        $html .= '<a href="?' . http_build_query(array_merge($_GET, ['page' => $current_page + 1])) . '">Next &raquo;</a>';
     }
     $html .= '</div>';
 

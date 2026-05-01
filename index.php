@@ -1,242 +1,157 @@
-<?php 
+<?php
 require_once 'includes/db.php';
 require_once 'includes/auth_functions.php';
-require_once 'includes/hero_section.php';
 
-$view = $_GET['view'] ?? 'main'; // Default view: main landing, or login/register
-
-// Set pageTitle per view BEFORE header is included
-if ($view === 'login') {
-    $pageTitle = 'Login';
-} elseif ($view === 'register') {
-    $pageTitle = 'Register';
-} else {
-    $pageTitle = 'Welcome to FinPulse';
+// If not yet set up, redirect to setup wizard
+if (!file_exists(__DIR__ . '/.env')) {
+    header('Location: setup.php');
+    exit;
 }
 
-// Handle form submissions
-$message = '';
-$message_type = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validate CSRF token
-    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
-        $message = 'Invalid request. Please try again.';
-        $message_type = 'error';
-    } elseif (isset($_POST['register'])) {
-        $username = trim($_POST['username']);
-        $email = trim($_POST['email']);
-        $password = $_POST['password'];
-        $confirm_password = $_POST['confirm_password'];
-
-        $result = registerUser($pdo, $username, $email, $password, $confirm_password);
-        if ($result === true) {
-            $_SESSION['flash_message'] = 'Registration successful! Please login.';
-            $_SESSION['flash_message_type'] = 'success';
-            header('Location: index.php?view=login');
-            exit;
-        } else {
-            $message = $result;
-            $message_type = 'error';
-        }
-    } elseif (isset($_POST['login'])) {
-        $username_or_email = trim($_POST['username_or_email']);
-        $password = $_POST['password'];
-
-        $user = loginUser($pdo, $username_or_email, $password);
-        if ($user === 'locked') {
-            $message = 'Too many login attempts. Please try again in 15 minutes.';
-            $message_type = 'error';
-        } elseif ($user) {
-            session_regenerate_id(true);
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['flash_message'] = 'Login successful! Welcome back, ' . htmlspecialchars($user['username']) . '.';
-            $_SESSION['flash_message_type'] = 'success';
-            header('Location: dashboard.php'); // Redirect to dashboard after login
-            exit;
-        } else {
-            $message = 'Invalid username/email or password.';
-            $message_type = 'error';
-        }
-    }
+// Only redirect to dashboard if session is fully valid
+if (isset($_SESSION['user_id'], $_SESSION['username'])) {
+    header('Location: dashboard.php');
+    exit;
 }
-
-// If user is already logged in, redirect to dashboard
-if (isset($_SESSION['user_id']) && $view !== 'logout') {
-    if ($view === 'main' || $view === 'login' || $view === 'register') {
-        header('Location: dashboard.php');
-        exit;
-    }
-}
-
-include 'includes/header.php'; 
 ?>
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>FinPulse — Take control of your finances</title>
+<meta name="description" content="FinPulse is a premium personal finance tracker for income, expenses, budgets and savings goals." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/app.js"></script>
+<style>body{font-family:Inter,ui-sans-serif,system-ui,sans-serif}</style>
+</head>
+<body class="min-h-screen bg-zinc-950 text-zinc-50 antialiased selection:bg-violet-500/30">
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -top-40 left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-violet-600/20 blur-3xl"></div>
+    <div class="absolute top-40 right-0 h-[400px] w-[400px] rounded-full bg-cyan-500/10 blur-3xl"></div>
+  </div>
 
-<?php if ($message): ?>
-    <div class="flash-message <?php echo htmlspecialchars($message_type); ?>"><?php echo htmlspecialchars($message); ?></div>
-<?php endif; ?>
+  <header class="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/70 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      <a href="index.php" class="flex items-center gap-2">
+        <span class="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 font-bold text-zinc-950">F</span>
+        <span class="font-semibold tracking-tight">FinPulse</span>
+      </a>
+      <nav class="hidden items-center gap-8 text-sm text-zinc-400 md:flex">
+        <a class="hover:text-zinc-50" href="#features">Features</a>
+        <a class="hover:text-zinc-50" href="#how">How it works</a>
+        <a class="hover:text-zinc-50" href="#faq">FAQ</a>
+      </nav>
+      <div class="flex items-center gap-2">
+        <a href="login.php" class="rounded-md px-3 py-1.5 text-sm text-zinc-300 hover:text-zinc-50">Login</a>
+        <a href="register.php" class="rounded-md bg-zinc-50 px-3 py-1.5 text-sm font-medium text-zinc-950 transition hover:scale-[1.03] hover:bg-white">Get Started</a>
+      </div>
+    </div>
+  </header>
 
-<?php if ($view === 'main'): ?>
-<?php renderHeroSection('heroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-bolt', 'Welcome to FinPulse', 'Take control of your finances, track your spending, and achieve your financial goals with ease.'); ?>
-        <p class="hero-desc" style="display:none;">Take control of your finances, track your spending, and achieve your financial goals with ease.</p>
-        <div class="hero-illustration mb-4">
-            <!-- Beautiful SVG finance illustration -->
-            <svg width="340" height="180" viewBox="0 0 340 180" fill="none" xmlns="http://www.w3.org/2000/svg" class="svg-float">
-                <ellipse cx="170" cy="160" rx="120" ry="18" fill="#14b8a655"/>
-                <rect x="80" y="60" width="180" height="70" rx="18" fill="#232b3b" stroke="#2563eb" stroke-width="3"/>
-                <rect x="110" y="90" width="50" height="25" rx="7" fill="#2563eb"/>
-                <rect x="170" y="90" width="60" height="25" rx="7" fill="#14b8a6"/>
-                <circle cx="135" cy="102" r="7" fill="#f59e42"/>
-                <circle cx="200" cy="102" r="7" fill="#f59e42"/>
-                <rect x="130" y="70" width="80" height="10" rx="4" fill="#30384e"/>
-                <rect x="120" y="120" width="100" height="6" rx="3" fill="#f59e42"/>
-                <g>
-                    <ellipse cx="265" cy="85" rx="10" ry="10" fill="#22c55e"/>
-                    <path d="M265,80 L265,90 M260,85 L270,85" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-                </g>
-                <g>
-                    <ellipse cx="95" cy="85" rx="10" ry="10" fill="#ef4444"/>
-                    <path d="M95,80 L95,90 M90,85 L100,85" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-                </g>
-            </svg>
+  <section class="mx-auto max-w-7xl px-6 pb-24 pt-20 text-center sm:pt-28">
+    <span class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs text-zinc-400">
+      <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> New · AI-powered insights
+    </span>
+    <h1 class="mx-auto mt-6 max-w-4xl text-5xl font-bold tracking-tight sm:text-7xl">
+      Take control of your finances with
+      <span class="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-300 bg-clip-text text-transparent">FinPulse</span>
+    </h1>
+    <p class="mx-auto mt-6 max-w-2xl text-lg text-zinc-400">
+      Track income, master your budget, and crush savings goals — all from a single, beautifully crafted dashboard.
+    </p>
+    <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
+      <a href="register.php" class="group inline-flex items-center gap-2 rounded-md bg-zinc-50 px-5 py-3 text-sm font-medium text-zinc-950 transition hover:scale-[1.03] hover:bg-white hover:shadow-glow">
+        Get Started
+        <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+      <a href="login.php" class="inline-flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/60 px-5 py-3 text-sm font-medium text-zinc-100 transition hover:border-zinc-700 hover:bg-zinc-900">
+        Login
+      </a>
+    </div>
+
+    <div class="mx-auto mt-16 max-w-5xl rounded-2xl border border-zinc-800 bg-zinc-900/40 p-2 shadow-2xl shadow-violet-900/20">
+      <div class="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+        <div class="flex items-center gap-1.5 border-b border-zinc-800 px-4 py-2.5">
+          <span class="h-2.5 w-2.5 rounded-full bg-zinc-700"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-zinc-700"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-zinc-700"></span>
         </div>
-        <p class="mb-3">Ready to get started?</p>
-        <a href="index.php?view=register" class="btn btn-primary me-2">Sign Up Now</a>
-        <a href="index.php?view=login" class="btn btn-secondary">Login</a>
-    </div>
-</section>
-
-<!-- Key Features Section -->
-<section class="features-section text-center py-5">
-    <div class="container">
-        <h2 class="section-title text-center mb-5">Why Choose FinPulse?</h2>
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="feature-item">
-                    <i class="fas fa-chart-pie fa-3x mb-3 text-primary"></i>
-                    <h4 class="feature-title">Comprehensive Tracking</h4>
-                    <p class="feature-desc">Monitor income, expenses, budgets, and savings goals all in one place.</p>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="feature-item">
-                    <i class="fas fa-bullseye fa-3x mb-3 text-success"></i>
-                    <h4 class="feature-title">Goal Oriented</h4>
-                    <p class="feature-desc">Set and track financial goals, with visual progress to keep you motivated.</p>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="feature-item">
-                    <i class="fas fa-shield-alt fa-3x mb-3 text-info"></i>
-                    <h4 class="feature-title">Secure & Private</h4>
-                    <p class="feature-desc">Your financial data is kept safe and private with robust security measures.</p>
-                </div>
-            </div>
+        <div class="grid gap-4 p-6 md:grid-cols-3">
+          <div class="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left">
+            <p class="text-xs text-zinc-500">Total Balance</p>
+            <p class="mt-2 text-2xl font-semibold">$24,580.00</p>
+            <p class="mt-1 text-xs text-emerald-400">▲ 12.4% this month</p>
+          </div>
+          <div class="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left">
+            <p class="text-xs text-zinc-500">Monthly Income</p>
+            <p class="mt-2 text-2xl font-semibold text-emerald-300">$8,200.00</p>
+            <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-800"><div class="h-full bg-gradient-to-r from-emerald-400 to-cyan-400" style="width:78%"></div></div>
+          </div>
+          <div class="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left">
+            <p class="text-xs text-zinc-500">Monthly Expenses</p>
+            <p class="mt-2 text-2xl font-semibold text-rose-300">$3,142.00</p>
+            <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-800"><div class="h-full bg-gradient-to-r from-rose-400 to-orange-400" style="width:42%"></div></div>
+          </div>
         </div>
+      </div>
     </div>
-</section>
+  </section>
 
-<!-- User Testimonials Section -->
-<section class="testimonials-section bg-light-subtle py-5">
-    <div class="container">
-        <h2 class="section-title text-center mb-5">What Our Users Say</h2>
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card testimonial-card h-100">
-                    <div class="card-body">
-                        <p class="testimonial-text fst-italic">"This tracker has revolutionized how I manage my money. It's so easy to use and has helped me save more than ever before!"</p>
-                        <div class="testimonial-author d-flex align-items-center mt-3">
-                            <img src="assets/images/avatars/avatar1.png" alt="Sarah W. Avatar" class="testimonial-avatar rounded-circle me-3" width="60" height="60">
-                            <div>
-                                <p class="testimonial-name fw-bold mb-0">Sarah W.</p>
-                                <p class="testimonial-role text-muted mb-0">Freelance Designer</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card testimonial-card h-100">
-                    <div class="card-body">
-                        <p class="testimonial-text fst-italic">"I love the budgeting tools and the visual reports. Finally, I feel in control of my finances. Highly recommended!"</p>
-                        <div class="testimonial-author d-flex align-items-center mt-3">
-                            <img src="assets/images/avatars/avatar2.png" alt="John B. Avatar" class="testimonial-avatar rounded-circle me-3" width="60" height="60">
-                            <div>
-                                <p class="testimonial-name fw-bold mb-0">John B.</p>
-                                <p class="testimonial-role text-muted mb-0">Software Engineer</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card testimonial-card h-100">
-                    <div class="card-body">
-                        <p class="testimonial-text fst-italic">"The goal-setting feature is fantastic! I've managed to save for a down payment on my car thanks to this app."</p>
-                        <div class="testimonial-author d-flex align-items-center mt-3">
-                            <img src="assets/images/avatars/avatar3.png" alt="Maria G. Avatar" class="testimonial-avatar rounded-circle me-3" width="60" height="60">
-                            <div>
-                                <p class="testimonial-name fw-bold mb-0">Maria G.</p>
-                                <p class="testimonial-role text-muted mb-0">Marketing Manager</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <section id="features" class="mx-auto max-w-7xl px-6 py-20">
+    <div class="mb-14 text-center">
+      <h2 class="text-3xl font-semibold tracking-tight sm:text-4xl">Everything you need, nothing you don't</h2>
+      <p class="mt-3 text-zinc-400">A focused toolkit built for clarity and control.</p>
+    </div>
+    <div class="grid gap-6 md:grid-cols-3">
+      <div class="group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:-translate-y-1 hover:border-zinc-700">
+        <div class="mb-5 grid h-11 w-11 place-items-center rounded-lg bg-emerald-500/10 text-emerald-300">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
         </div>
+        <h3 class="text-lg font-semibold">Income Tracking</h3>
+        <p class="mt-2 text-sm text-zinc-400">Log salaries, freelance gigs, and side hustles. Watch your inflow grow over time.</p>
+      </div>
+      <div class="group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:-translate-y-1 hover:border-zinc-700">
+        <div class="mb-5 grid h-11 w-11 place-items-center rounded-lg bg-violet-500/10 text-violet-300">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 15h4"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold">Smart Budgeting</h3>
+        <p class="mt-2 text-sm text-zinc-400">Set monthly category limits with live progress bars and overspend alerts.</p>
+      </div>
+      <div class="group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:-translate-y-1 hover:border-zinc-700">
+        <div class="mb-5 grid h-11 w-11 place-items-center rounded-lg bg-cyan-500/10 text-cyan-300">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6 6 .9-4.5 4.2L18 20l-6-3.5L6 20l1.5-6.9L3 8.9 9 8z"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold">Savings Goals</h3>
+        <p class="mt-2 text-sm text-zinc-400">Visualize progress toward a new car, house, or that dream vacation.</p>
+      </div>
     </div>
-</section>
+  </section>
 
-<?php elseif ($view === 'login'): ?>
-<?php renderHeroSection('loginHeroGradient', '#2563eb', '#14b8a6', 'fa-solid fa-right-to-bracket', 'Login'); ?>
-<div class="form-container card form-container-sm mb-4">
-         <form action="index.php?view=login" method="POST" autocomplete="on">
-         <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
-         <div class="form-group">
-             <label for="username_or_email"><i class="fa-solid fa-user"></i> Username or Email:</label>
-             <input type="text" id="username_or_email" name="username_or_email" required autocomplete="username">
-         </div>
-         <div class="form-group">
-             <label for="password"><i class="fa-solid fa-lock"></i> Password:</label>
-             <input type="password" id="password" name="password" required autocomplete="current-password">
-         </div>
-         <button type="submit" name="login" class="btn btn-primary btn-full-width"><i class="fa-solid fa-arrow-right"></i> Login</button>
-     </form>
-    <div class="auth-links">
-        <p>Don't have an account? <a href="index.php?view=register">Register here</a></p>
+  <section class="mx-auto max-w-7xl px-6 py-20">
+    <div class="relative overflow-hidden rounded-3xl border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-950 p-12 text-center">
+      <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(167,139,250,.15),transparent_60%)]"></div>
+      <h3 class="text-3xl font-semibold tracking-tight sm:text-4xl">Start tracking in 60 seconds</h3>
+      <p class="mx-auto mt-3 max-w-xl text-zinc-400">No credit card required. Cancel anytime.</p>
+      <a href="register.php" class="mt-8 inline-flex rounded-md bg-zinc-50 px-5 py-3 text-sm font-medium text-zinc-950 hover:scale-[1.03] hover:bg-white">Create free account</a>
     </div>
-</div>
+  </section>
 
-<?php elseif ($view === 'register'): ?>
-<?php renderHeroSection('registerHeroGradient', '#2563eb', '#f59e42', 'fa-solid fa-user-plus', 'Register'); ?>
-<div class="form-container card form-container-sm mb-4">
-     <form action="index.php?view=register" method="POST" autocomplete="on">
-         <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
-         <div class="form-group">
-             <label for="username"><i class="fa-solid fa-user"></i> Username:</label>
-             <input type="text" id="username" name="username" required value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>" autocomplete="username">
-         </div>
-         <div class="form-group">
-             <label for="email"><i class="fa-solid fa-envelope"></i> Email:</label>
-             <input type="email" id="email" name="email" required value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" autocomplete="email">
-         </div>
-         <div class="form-group">
-             <label for="password"><i class="fa-solid fa-lock"></i> Password:</label>
-             <input type="password" id="password" name="password" required autocomplete="new-password" pattern="(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}">
-             <small class="form-text">Minimum 8 characters, at least one uppercase letter, one number, and one special character</small>
-         </div>
-         <div class="form-group">
-             <label for="confirm_password"><i class="fa-solid fa-lock"></i> Confirm Password:</label>
-             <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password">
-         </div>
-         <button type="submit" name="register" class="btn btn-primary btn-full-width"><i class="fa-solid fa-user-plus"></i> Register</button>
-     </form>
-    <div class="auth-links">
-        <p>Already have an account? <a href="index.php?view=login">Login here</a></p>
+  <footer class="border-t border-zinc-800/60">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-zinc-500 sm:flex-row">
+      <div class="flex items-center gap-2">
+        <span class="grid h-6 w-6 place-items-center rounded bg-gradient-to-br from-violet-500 to-cyan-400 text-xs font-bold text-zinc-950">F</span>
+        <span>© 2026 FinPulse. All rights reserved.</span>
+      </div>
+      <div class="flex gap-6">
+        <a class="hover:text-zinc-200" href="#">Privacy</a>
+        <a class="hover:text-zinc-200" href="#">Terms</a>
+        <a class="hover:text-zinc-200" href="#">Contact</a>
+      </div>
     </div>
-</div>
-
-<?php endif; ?>
-
-<?php include 'includes/footer.php'; ?>
+  </footer>
+</body>
+</html>
